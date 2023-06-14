@@ -18,6 +18,7 @@ const unknownEndpoint = (request, response) => {
 morgan.token('body', (request) => JSON.stringify(request.body))
 
 app.use(express.json())
+app.use(express.static('build'))
 app.use(cors())
 app.use(morgan(':method :url :status :response-time ms | :res[content-length] | :body'))
 //app.use(requestLogger)
