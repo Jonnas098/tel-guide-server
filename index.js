@@ -48,6 +48,10 @@ const generateId = () => {
   return maxId + 1
 }
 
+app.get('/', (request, response) => {
+  response.send('<p>/api/persons to see the contacts list </p>')
+})
+
 app.get('/api/persons', (request, response) => {
   response.json(persons)
 })
