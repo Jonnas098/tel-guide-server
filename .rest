@@ -1,20 +1,19 @@
-basic###
-GET http://localhost:3001/api/persons
+get http://localhost:3001/api/persons
+Content-Type: application/json
+
+###
+get http://localhost:3001/api/persons/648cca9c2c2bbb5e15a8382e
 Accept: application/json
 
 ###
-GET http://localhost:3001/api/persons/1
-Accept: application/json
-
-###
-DELETE http://localhost:3001/api/persons/4
-Accept: application/json
+delete http://localhost:3001/api/persons/648cce4575d5c9cb242fa20c
+Content-Type: application/json
 
 ###
 POST http://localhost:3001/api/persons
 Content-Type: application/json
 
 {
-  "name": "Test Tres",
+  "name": "Test Cuatro",
   "number": "111222333"
 }
