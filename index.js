@@ -1,9 +1,10 @@
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
-
 const app = express()
+const Contacts = require("./models/contact")
 
+//Middlewares
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
   console.log('Path:', request.path)
@@ -23,24 +24,6 @@ app.use(cors())
 app.use(morgan(':method :url :status :response-time ms | :res[content-length] | :body'))
 //app.use(requestLogger)
 
-let persons = [
-  {
-    "id": 1,
-    "name": "John Navarro",
-    "number": "8924-6888"
-  },
-  {
-    "id": 2,
-    "name": "Ada Lovelace",
-    "number": "39-44-5323523"
-  },
-  {
-    "id": 3,
-    "name": "Ivette Ramirez",
-    "number": "2222-3333"
-  },
-]
-
 const generateId = () => {
   const maxId = persons.length > 0
   ? Math.max(...persons.map(p => p.id))
@@ -54,63 +37,77 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Contacts.find({}).then(contacts => {
+    console.log("Done process");
+    response.json(contacts)
+  })
 })
 
 app.get('/info', (request, response) => {
-  const personsInfo = persons.length
+  const personsInfo = Contacts.length
   const date = new Date()
+  console.log(personsInfo);
   response.send(`Phonebook has info for ${personsInfo} people ${date}`)
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(p => p.id === id)
-
-  if(person) {
-    console.log('Person found')
-    response.json(person)
-    response.status(200).end()
-  } else {
-    console.log('Person not found')
-    response.send('<h1>404 Not Found</h1>')
-    response.status(404).end()
-  }
+  // const id = Number(request.params.id)
+  // const person = persons.find(p => p.id === id)
+  Contacts.findById(request.params.id).then(contact => {
+    if(contact) {
+      console.log('Contact found')
+      response.json(contact)
+      response.status(200).end()
+    } else {
+      console.log('Contact not found')
+      response.send('<h1>404 Not Found</h1>')
+      response.status(404).end()
+    }
+  })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(p => p.id !== id)
-
-  response.status(204).end()
+  const id = (request.params.id)
+  console.log(id);
+  Contacts.findByIdAndDelete(id).then(contact => {
+    console.log(contact);
+  }).catch(error => {
+    console.log(error);
+    response.sendStatus(500)
+  })
+  Contacts.find({}).then(contacts => {
+    response.json(contacts)
+  })
 })
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-  const nameExist = persons.some(p => p.name === body.name)
+  //const nameExist = persons.some(p => p.name === body.name)
+  // if (!body.name) {
+  //   return response.status(400).json({
+  //     error: 'Name is required'
+  //   })
+  // } else if (!body.number) {
+  //   return response.status(400).json({
+  //     error: 'Number is required'
+  //   })
+  // } else if (nameExist) {
+  //   return response.status(400).json({
+  //     error: 'Name must be unique'
+  //   })
+  // }
 
-  const person = {
+  if(body.name === undefined) {
+    return response.status(400).json({error: "Content missing"})
+  }
+  const contact = new Contacts({
     name: body.name,
-    number: body.number,
-    id: generateId()
-  }
+    number: body.number
+  })
 
-  if (!body.name) {
-    return response.status(400).json({
-      error: 'Name is required'
-    })
-  } else if (!body.number) {
-    return response.status(400).json({
-      error: 'Number is required'
-    })
-  } else if (nameExist) {
-    return response.status(400).json({
-      error: 'Name must be unique'
-    })
-  }
-
-  persons = persons.concat(person)
-  response.json(person)
+  contact.save().then(savedContact => {
+    response.json(savedContact)
+  })
 })
 
 app.use(unknownEndpoint)
