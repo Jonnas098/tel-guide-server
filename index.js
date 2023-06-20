@@ -12,14 +12,11 @@ const requestLogger = (request, response, next) => {
   console.log('---')
   next()
 }
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({error: 'unknown endpoint'})
-}
 
 morgan.token('body', (request) => JSON.stringify(request.body))
 
-app.use(express.json())
 app.use(express.static('build'))
+app.use(express.json())
 app.use(cors())
 app.use(morgan(':method :url :status :response-time ms | :res[content-length] | :body'))
 //app.use(requestLogger)
@@ -44,10 +41,12 @@ app.get('/api/persons', (request, response) => {
 })
 
 app.get('/info', (request, response) => {
-  const personsInfo = Contacts.length
-  const date = new Date()
-  console.log(personsInfo);
-  response.send(`Phonebook has info for ${personsInfo} people ${date}`)
+  Contacts.find({}).then(contacts => {
+    const personsInfo = contacts.length
+    const date = new Date()
+    console.log(personsInfo);
+    response.send(`Phonebook has info for ${personsInfo} people ${date}`)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -63,24 +62,23 @@ app.get('/api/persons/:id', (request, response) => {
       response.send('<h1>404 Not Found</h1>')
       response.status(404).end()
     }
-  })
+  }).catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
   const id = (request.params.id)
   console.log(id);
+  
   Contacts.findByIdAndDelete(id).then(contact => {
     console.log(contact);
-  }).catch(error => {
-    console.log(error);
-    response.sendStatus(500)
-  })
+  }).catch(error => next(error))
+  
   Contacts.find({}).then(contacts => {
     response.json(contacts)
   })
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body
   //const nameExist = persons.some(p => p.name === body.name)
   // if (!body.name) {
@@ -107,10 +105,44 @@ app.post('/api/persons', (request, response) => {
 
   contact.save().then(savedContact => {
     response.json(savedContact)
-  })
+  }). catch(error => next(error))
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+  const id = request.params.id
+  const contact = {
+    name: body.name,
+    number: body.number
+  }
+  //console.log(contact);
+
+  Contacts.findByIdAndUpdate(id, contact, {new:true})
+  .then(updatedContact => {
+    //console.log(updatedContact);
+    response.json(updatedContact)
+  })
+  .catch(error => next(error))
+})
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({error: 'unknown endpoint'})
+}
+  
 app.use(unknownEndpoint)
+  
+
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message);
+
+  if(error.name === "CastError") {
+    return response.status(400).send({error: "malfomatted id"})
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 
